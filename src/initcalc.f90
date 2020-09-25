@@ -48,7 +48,7 @@ subroutine init_calc(mu, tau1lg, step, tau2lg)
 !--- write out what is going to be calculated: ------!
    print*,'---------------------------------------------------'
    print*,'Routine to convert MURam cubes to Rays             '
-   print*,'by V. Witkze                                       '
+   print*,'by V. Witzke                                       '
    print*,'                                                   '
    print*,'---------------------------------------------------'
    print*,' Summary of the calculation:                       '

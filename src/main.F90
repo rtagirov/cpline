@@ -23,7 +23,7 @@
 !--- reading cube:
   character(len=80)  filename1, filename2, filename3, filename 
   character(len=80)  folder
-  character(len=6)   filenumber
+  character(len=6)   snapshot
   character(len=50)  numberx
 
 ! --- for zgrid 
@@ -47,21 +47,22 @@
   real(kind=8) introssk
   integer      map1
 
+! get snapshot number
 
-
-
-!       filename='result_0.120000.fits'
-!       folder='/scratch/yeo/SATIRE3D/D000/snapshots/'
-!    read(*,*) folder
-!    read(*,*) filenumber
-
-    open(unit = 102, file = 'path.inp', form = 'formatted', status = 'old')
-    read(102, *) folder
-    read(102, *) filenumber
+    open(unit = 102, file='snapshot.inp', form='formatted', status='old')
+    read(102, *) snapshot
     close(unit = 102) 
 
-    sizee = 1
-    myrank = 0  
+! get cube dimensions:
+
+    open(unit = 2, file='dims.inp', form='formatted', status='old')
+    read(2, *)
+    read(2, *) Nz, Nx, Ny
+    read(2, *)
+    read(2, *) dz, dx, dy
+    print*, ' Nx, Ny, Nz', Nx, Ny, Nz
+    print*, ' dx, dy, dz', dx, dy, dz
+    close(unit = 2) 
 
 !----------------------------------------------------------------
 !      initialize
@@ -76,29 +77,6 @@
         stop
      endif
     endif 
-
-! get cube dimensions :
-
-  if (mpiread .or. binread) then 
-
-    filename=trim(folder)//'Header.'//trim(filenumber)
-    open (unit = 1, file= filename, form='formatted',status ='old')
-    read(1,*) Nz, Nx, Ny, dz, dx, dy
-    print*, ' Nx, Ny, Nz', Nx, Ny, Nz
-    close(unit=1)
-
-  else
-
-!    print*, ' file name for dimensions nx, ny, nz and dz, dx, dy'
-!    read(*,*) filename
-    open(unit = 2, file='dims.inp', form='formatted', status='old')
-    read(2, *)
-    read(2, *) Nz, Nx, Ny, dz, dx, dy
-    close(unit = 2) 
-
-  endif 
-
-
 
 !---- for tau - integration we do not need the whole depth of the cube
 !--- set depth of temporary arrays
@@ -140,12 +118,19 @@
 !------     READ in the CUBE ----------------------------------------------
 !--------------------------------------------------------------------------
 
-   filename1=trim(folder)//'eosT.'//trim(filenumber)
-   filename2=trim(folder)//'eosP.'//trim(filenumber)
-   filename3=trim(folder)//'result_0.'//trim(filenumber)
-!   filename3=trim(folder)//'result_prim_0.'//trim(filenumber)
+!   filename1=trim(folder)//'eosT.'//trim(snapshot)
+!   filename2=trim(folder)//'eosP.'//trim(snapshot)
+!   filename3=trim(folder)//'result_0.'//trim(snapshot)
+!   filename1='eosT.'//trim(snapshot)
+!   filename2='eosP.'//trim(snapshot)
+!   filename3='result_0.'//trim(snapshot)
 
    if (mpiread) then 
+
+    filename1='eosT.'//trim(snapshot)
+    filename2='eosP.'//trim(snapshot)
+    filename3='result_0.'//trim(snapshot)
+
     !    Temperature  
     Nt = nx*ny*nz
 
@@ -157,15 +142,23 @@
 
     call fin_comm
 !   --- if binary read call binary_read
-   else if (binread) then 
+   else if (binread) then
+
+    filename1='eosT.'//trim(snapshot)//'.bin'
+    filename2='eosP.'//trim(snapshot)//'.bin'
+    filename3='result_0.'//trim(snapshot)//'.bin'
 
     call read_cube_bin(filename1, nx, ny, nz, T)
-    call read_cube_bin(filename2,  nx, ny, nz, P)
-    call read_cube_bin(filename3,  nx, ny, nz, rho)
+    call read_cube_bin(filename2, nx, ny, nz, P)
+    call read_cube_bin(filename3, nx, ny, nz, rho)
 
    else if (fitsread) then 
 ! ---- if fits call fits read 
 #ifdef FITS
+     filename1='eosT.'//trim(snapshot)//'.fits'
+     filename2='eosP.'//trim(snapshot)//'.fits'
+     filename3='result_0.'//trim(snapshot)//'.fits'
+
      call read_cube_fits(filename1, nx, ny, nz, T)
      call read_cube_fits(filename2, nx, ny, nz, P)
      call read_cube_fits(filename3, nx, ny, nz, rho)
@@ -404,7 +397,7 @@
 !---- the if structure is as follows, since if tau200 is set, then gettaug can not be set. But rotation and tau200 can be set simulaneously. For gettau the end array will always be in the nx, ny, ngrid with and without rotation
 
 
-    print*, ' Finished all claculations let us write stuff out!' 
+    print*, ' Finished all calculations let us write stuff out!' 
  
      if (gettaug) then 
 
@@ -412,32 +405,38 @@
       !---- need to get mu as a number for the file name:
        call str(int(mu*10), numberx)
 ! since the cube is rotated, the dz is changed, write out a new Headerfile:
-       filename='Header_mu_'//trim(numberx)//'.'//trim(filenumber)
+       filename='Header_mu_'//trim(numberx)//'.'//trim(snapshot)
        open (unit = 1, file= filename, form='formatted',status ='new')
        write (1,*) ' tau-grid points, start lgtau, step, finish lgtau,  Nx, Ny, dx,  dy' 
        write(1,*) Ngrid, tau1lg, step , tau2lg, Nx, Ny, dx, dy 
        close(unit=1)
 
+       sizee = 1
+       myrank = 0  
 
 !      Temperature 
-       filename='T_onTau.'//trim(filenumber)//'.nc'
+       filename='T_onTau.'//trim(snapshot)//'.nc'
+        print*, 'check 1'
         call  create_netcdf(ncid, filename, 'T',  nx, ny, nzz, ier)
+        print*, 'check 2'
         call write_netcdf(ncid, myrank, sizee, 'T', outT, nx, nx, ny, nzz, comm, ier)
+        print*, 'check 3'
         call close_netcdf(ncid, ier)
+        print*, 'check 4'
 
 !      Presssure  
-       filename='P_onTau.'//trim(filenumber)//'.nc'
+       filename='P_onTau.'//trim(snapshot)//'.nc'
         call  create_netcdf(ncid, filename, 'P',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'P', outP, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
 !      density 
-       filename='rho_onTau.'//trim(filenumber)//'.nc'
+       filename='rho_onTau.'//trim(snapshot)//'.nc'
         call  create_netcdf(ncid, filename, 'R',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'R', outrho, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
 !---- zgrid 
 
-       filename='Z_onTau.'//trim(filenumber)//'.nc'
+       filename='Z_onTau.'//trim(snapshot)//'.nc'
         call  create_netcdf(ncid, filename, 'Z',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'Z', outz, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
@@ -451,7 +450,7 @@
         if(ifmu) Nzz = Nzcut
 
         if (tau200) then 
-          filename='result_ttau200.'//trim(filenumber)//'.nc'
+          filename='result_ttau200.'//trim(snapshot)//'.nc'
           call  create_netcdf(ncid, filename, 'tau',  nx, ny, nzz, ier)
           call write_netcdf(ncid, myrank, sizee, 'tau', tau, nx, nx, ny, nzz, comm, ier)
           call close_netcdf(ncid, ier)
@@ -462,7 +461,7 @@
 !---- need to get mu as a number for the file name:
        call str(int(mu*10), numberx)
 ! since the cube is rotated, the dz is changed, write out a new Headerfile:
-       filename='Header_mu_'//trim(numberx)//'.'//trim(filenumber)
+       filename='Header_mu_'//trim(numberx)//'.'//trim(snapshot)
        open (unit = 1, file= filename, form='formatted',status ='new')
        dz = dz*mu
        write (1,*) Nzz, Nx, Ny, dz, dx, dy
@@ -470,18 +469,18 @@
 
 
 !      Temperature 
-       filename='T_mu_'//trim(numberx)//'.'//trim(filenumber)//'.nc'
+       filename='T_mu_'//trim(numberx)//'.'//trim(snapshot)//'.nc'
         call  create_netcdf(ncid, filename, 'T',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'T', newT, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
 
 !      Presssure  
-       filename='P_mu_'//trim(numberx)//'.'//trim(filenumber)//'.nc'
+       filename='P_mu_'//trim(numberx)//'.'//trim(snapshot)//'.nc'
         call  create_netcdf(ncid, filename, 'P',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'P', newP, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
 !      density 
-       filename='rho_mu_'//trim(numberx)//'.'//trim(filenumber)//'.nc'
+       filename='rho_mu_'//trim(numberx)//'.'//trim(snapshot)//'.nc'
         call  create_netcdf(ncid, filename, 'R',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'R', newrho, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)

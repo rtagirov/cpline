@@ -1,0 +1,30 @@
+#!/bin/sh
+
+#rm -f $HOME/log/*
+
+st=$1
+mf=$2
+ss=$3
+#nums=`seq 11 20`
+
+#for num in $nums; do
+
+#run=time_test/$num
+
+ncpus=1
+
+wt=00:31:00
+
+mem=3gb
+
+qsub -v \
+st=$st,\
+mf=$mf,\
+ss=$ss \
+-o $HOME/log/$JOB_ID \
+-e $HOME/log/$JOB_ID \
+-N ${st}_${mf}_${ss} \
+-lwalltime=$wt \
+-lselect=1:ncpus=$ncpus:mem=$mem cpline.pbs
+
+#done

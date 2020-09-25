@@ -1,5 +1,5 @@
-FC=mpif90
-#FC=mpiifort
+#FC=mpif90
+FC=mpiifort
 #FC=mpifort
 #FC = "mpif90"
 #FC=ifort
@@ -8,13 +8,20 @@ FC=mpif90
 #FFLAGS = -c -traceback -heap-arrays -check bounds#-O2 
 FFLAGS = -c
 #FFLAGS = -DFITS -c 
-INCLUDE=-I/usr/lib/openmpi/include/#-I/opt/local/cfitsio/cfitsio-3.350/include
+#INCLUDE=-I/usr/lib/openmpi/include/ #-I/opt/local/cfitsio/cfitsio-3.350/include
+#INCLUDE=-I/usr/lib/openmpi/include/
+INCLUDE=-I${MPI_INCLUDE}
 FITSLIB= #-L/opt/local/cfitsio/cfitsio-3.350/lib -lcfitsio
 
 #INCLUDENET=-I/scratch/witzke/Libraries/netcdf-3.6.1/include
-INCLUDENET=-I/home/rtagirov/lib/include
+#INCLUDENET=-I/apps/netcdf/3.6.2/include
+INCLUDENET=-I${NETCDF}/include
+#INCLUDENET=-I/home/rtagirov/lib/include
+
 #NETCDFLIB=-L../netcdf -lnet -L/scratch/witzke/Libraries/netcdf-3.6.1/lib -lnetcdf
-NETCDFLIB=-L../netcdf -lnet -L/home/rtagirov/lib/lib -lnetcdf
+#NETCDFLIB=-L../netcdf -lnet -L/home/rtagirov/lib/lib -lnetcdf
+#NETCDFLIB=-L../netcdf -lnet -L/apps/netcdf/3.6.2/lib -lnetcdf
+NETCDFLIB=-L../netcdf -lnet -L${NETCDF}/lib -lnetcdf
 
 OBJECTS=arrays.o io_cubes.o initcalc.o rotate.o
 
@@ -25,7 +32,7 @@ all: main
 
 main: $(OBJECTS)
 	$(FC) -o cpline.exe main.F90 $(OBJECTS) $(INCLUDE) $(FITSLIB) $(INCLUDENET) $(NETCDFLIB)
-	mv cpline.exe ../bin
+#	mv cpline.exe ../bin
 
 arrays.o: arrays.f90
 	$(FC) $(FFLAGS) arrays.f90 

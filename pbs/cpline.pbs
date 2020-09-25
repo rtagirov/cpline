@@ -1,0 +1,39 @@
+#!/bin/sh
+
+#parsed by qsub
+#stype
+#mag
+#snapshot
+
+inp=$HOME/cpline/inp
+src=$HOME/cpline/src
+
+cubes=$HOME/muram_cubes/$st/$mf
+
+base=$HOME/runs/cpline
+
+run=$st/$mf/$ss
+
+dir=$base/$run
+tmp=$TMPDIR
+
+if [ ! -d $base/inp ]; then cp -r $inp -t $base; fi
+if [   -d "$dir"    ]; then rm -r $dir;          fi
+
+mkdir -p $dir
+
+cp -rv $base/inp/* -t $dir
+
+ln -s $cubes/eosP.${ss}.bin     $dir
+ln -s $cubes/eosT.${ss}.bin     $dir
+ln -s $cubes/result_0.${ss}.bin $dir
+
+cp -v $src/cpline.exe $dir
+
+echo $ss > $dir/snapshot.inp
+
+cp -r $dir/* -t $tmp
+
+/usr/bin/time -v $tmp/cpline.exe | tee $tmp/cpline.log
+
+rsync -rptgoDq $tmp/ $dir/

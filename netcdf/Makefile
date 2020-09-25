@@ -1,8 +1,11 @@
-FC=mpif90 
+#FC=mpif90
+FC=mpiifort
 #FC=mpifort
 #FC=ifort
 #INCLUDENET=-I/scratch/witzke/Libraries/netcdf-3.6.1/include
-INCLUDENET=-I/home/rtagirov/lib/include
+#INCLUDENET=-I/home/rtagirov/lib/include
+#INCLUDENET=-I/apps/netcdf/3.6.2/include
+INCLUDENET=-I${NETCDF}/include
 #FFLAGS= -traceback -c -heap-arrays -check bounds #-O2
 FFLAGS= -c
 #FPPFLAG=""
