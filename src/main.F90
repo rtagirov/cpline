@@ -134,6 +134,7 @@
     !    Temperature  
     Nt = nx*ny*nz
 
+#ifdef MPIF
     call init_comm
 
     call read_cube_mpi(filename1, Nt, nx, ny, nz, T)
@@ -141,6 +142,8 @@
     call read_cube_mpi(filename3, Nt, nx, ny, nz, rho)
 
     call fin_comm
+#endif 
+
 !   --- if binary read call binary_read
    else if (binread) then
 
@@ -416,33 +419,26 @@
 
 !      Temperature 
        filename='T_onTau.'//trim(snapshot)//'.nc'
-        print*, 'check 1'
-        call  create_netcdf(ncid, filename, 'T',  nx, ny, nzz, ier)
-        print*, 'check 2'
+        call create_netcdf(ncid, filename, 'T',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'T', outT, nx, nx, ny, nzz, comm, ier)
-        print*, 'check 3'
         call close_netcdf(ncid, ier)
-        print*, 'check 4'
 
 !      Presssure  
        filename='P_onTau.'//trim(snapshot)//'.nc'
-        call  create_netcdf(ncid, filename, 'P',  nx, ny, nzz, ier)
+        call create_netcdf(ncid, filename, 'P',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'P', outP, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
 !      density 
        filename='rho_onTau.'//trim(snapshot)//'.nc'
-        call  create_netcdf(ncid, filename, 'R',  nx, ny, nzz, ier)
+        call create_netcdf(ncid, filename, 'R',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'R', outrho, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
 !---- zgrid 
 
        filename='Z_onTau.'//trim(snapshot)//'.nc'
-        call  create_netcdf(ncid, filename, 'Z',  nx, ny, nzz, ier)
+        call create_netcdf(ncid, filename, 'Z',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'Z', outz, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
-
-
-
 
      else if (tau200 .or. ifmu) then 
 ! write new NetCDF file for bv and tau_ross
