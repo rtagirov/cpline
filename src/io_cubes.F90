@@ -18,8 +18,8 @@ implicit none
    integer, intent(in):: Nt, nx, ny, nz
    character(*), intent(in):: filename
 
-!   real(kind=4), intent(out) :: outarr(nx, ny, nz)
-   real(kind=8), intent(out) :: outarr(nx, ny, nz)
+   real(kind=4), intent(out) :: outarr(nx, ny, nz)
+!   real(kind=8), intent(out) :: outarr(nx, ny, nz)
 
    integer mfh, count, datatype, status, amode, mpi_info
    integer i,j,k, Ni
@@ -88,25 +88,36 @@ subroutine read_cube_bin(filename, nx, ny, nz, outarr)
    implicit none 
    
    integer, intent(in) :: nx, ny, nz
-!   real(kind=4), intent(out):: outarr(nx, ny, nz)
-   real(kind=8), intent(out):: outarr(nx, ny, nz)
+   real(kind=4), intent(out):: outarr(nx, ny, nz)
+!   real(kind=8), intent(out):: outarr(nx, ny, nz)
    character(*) :: filename
    integer i, j, k
 
  
 !   open (unit = 1, file= filename, form='unformatted',status ='old') ! original
    open (unit = 1, file= filename, form='unformatted',status ='old', access = 'stream')
+
        do i = 1, Nx
          do j = 1, Ny
            do k = 1, Nz
              read(1) outarr(i,j,k)
-
            end do
          end do
        end do
 
    close(unit=1)
 
+!   do k = 1, Nz
+
+!      write(*, '(i3,2x,5(f8.2,2x))'), k, outarr(257, 257, k), &
+!                                         outarr(413, 165, k), &
+!                                         outarr(123, 88,  k), &
+!                                         outarr(344, 189, k), &
+!                                         outarr(12, 172,  k)
+!
+!   enddo
+
+!   stop
 
    return 
 

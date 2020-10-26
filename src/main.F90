@@ -37,8 +37,8 @@
 
 ! --- for setting up tau grid on which to  map :
   integer Ngrid 
-  integer Ngridmax 
-  parameter( Ngridmax = 82)
+!  integer Ngridmax 
+!  parameter( Ngridmax = 82)
    
   real(kind=8) maxz, tau1lg, step, tau2lg
  
@@ -46,6 +46,12 @@
 !--- functions -----------------------------------------------!  
   real(kind=8) introssk
   integer      map1
+
+!----------- auxiliary --------
+
+  real(kind = 8) :: mean1, mean2, mean3, sigma1, sigma2, sigma3
+  real(kind = 8) :: maxim1, maxim2, maxim3
+  real(kind = 8) :: minim1, minim2, minim3
 
 ! get snapshot number
 
@@ -71,11 +77,11 @@
     call init_calc(mu, tau1lg, step, tau2lg)
     if (gettaug) then 
      Ngrid  = int((tau2lg - tau1lg)/step) +1 
-     if (Ngrid .gt. Ngridmax) then 
-        print*,' Tau grid configuration results in too many points; Ngrid =', Ngrid 
-        print*, ' Application will be aborted ' 
-        stop
-     endif
+!     if (Ngrid .gt. Ngridmax) then 
+!        print*,' Tau grid configuration results in too many points; Ngrid =', Ngrid 
+!        print*, ' Application will be aborted ' 
+!        stop
+!     endif
     endif 
 
 !---- for tau - integration we do not need the whole depth of the cube
@@ -84,7 +90,8 @@
      Nzcut = Nz * int((1.0d0/mu))
    else
      mu = 1.0
-     Nzcut = int(Nz/2)
+!     Nzcut = int(Nz/2)
+     Nzcut = Nz
    endif 
 
 !----------------------------------------------------------------------------
@@ -152,6 +159,7 @@
     filename3='result_0.'//trim(snapshot)//'.bin'
 
     call read_cube_bin(filename1, nx, ny, nz, T)
+!    stop 'stop after read_cube_bin temp'
     call read_cube_bin(filename2, nx, ny, nz, P)
     call read_cube_bin(filename3, nx, ny, nz, rho)
 
@@ -176,10 +184,15 @@
 
 ! z-grid needs to be set for the cube as it is read in:
 
-   zgrid(1)=1.0d0
+!   zgrid(1)=1.0d0
+   zgrid(1)=0.0d0
 
    do k=2,Nzcut
+
      zgrid(k)=zgrid(k-1)+dz
+
+!     write(*, *) k, zgrid(k)
+
    end do
 
 
@@ -224,7 +237,58 @@
       end do 
 
      summean = summean/(Nx*Ny)
-     print*, ' Pivot = ', summean 
+     print*, ' Pivot = ', summean
+
+     open (unit = 9, file ='tau.dat') 
+         do i = 1, nz
+           write(9, *) i, tau(1, 1, i)
+         end do
+     close (unit=9)
+
+     mean1 = 0.0d0
+     mean2 = 0.0d0
+     mean3 = 0.0d0
+
+     do i = 1, Nx
+        do j = 1, Ny
+           mean1 = mean1 + tau(i, j, 2)
+           mean2 = mean2 + tau(i, j, 3)
+           mean3 = mean3 + tau(i, j, 4)
+        enddo
+     enddo
+
+     mean1 = mean1 / (Nx * Ny)
+     mean2 = mean2 / (Nx * Ny)
+     mean3 = mean3 / (Nx * Ny)
+
+     sigma1 = 0.0d0
+     sigma2 = 0.0d0
+     sigma3 = 0.0d0
+
+     do i = 1, Nx
+        do j = 1, Ny
+           sigma1 = sigma1 + (tau(i, j, 2) - mean1)**2.0d0
+           sigma2 = sigma2 + (tau(i, j, 3) - mean2)**2.0d0
+           sigma3 = sigma3 + (tau(i, j, 4) - mean3)**2.0d0
+        enddo
+     enddo
+
+     sigma1 = dsqrt(sigma1 / (Nx * Ny))
+     sigma2 = dsqrt(sigma2 / (Nx * Ny))
+     sigma3 = dsqrt(sigma3 / (Nx * Ny))
+
+     maxim1 = maxval(tau(:, :, 2))
+     maxim2 = maxval(tau(:, :, 3))
+     maxim3 = maxval(tau(:, :, 4))
+
+     minim1 = minval(tau(:, :, 2))
+     minim2 = minval(tau(:, :, 3))
+     minim3 = minval(tau(:, :, 4))
+
+     write(*, '(A,2x,3(es9.2,2x))') 'mean', mean1,  mean2,  mean3
+     write(*, '(A,2x,3(es9.2,2x))') 'sig',  sigma1, sigma2, sigma3
+     write(*, '(A,2x,3(es9.2,2x))') 'max',  maxim1, maxim2, maxim3
+     write(*, '(A,2x,3(es9.2,2x))') 'min',  minim1, minim2, minim3
   
 !-------------------------------------------------------------------------!
 !    --------   DO the ROTATION ------------------------------------------!
@@ -413,6 +477,17 @@
        write (1,*) ' tau-grid points, start lgtau, step, finish lgtau,  Nx, Ny, dx,  dy' 
        write(1,*) Ngrid, tau1lg, step , tau2lg, Nx, Ny, dx, dy 
        close(unit=1)
+
+!       open (unit =1, file ='structure.dat')       
+!       do k = 1, Nx
+!        do j = 1, Ny
+!         do i = 1, nzz
+!           write(1,*) outz(k,j,i),  outT(k,j, i ), outP(k,j, i), outrho(k,j,i)
+!         end do
+!        end do
+!       end do
+!       close (unit=1)
+
 
        sizee = 1
        myrank = 0  

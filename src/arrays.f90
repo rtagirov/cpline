@@ -9,7 +9,7 @@ parameter ( tenlog = 2.30258509299405d0)
 
 real(kind=4), allocatable :: buffarr(:), bufffits(:,:,:)
 real(kind=4), allocatable :: tau(:, :,:)
-real(kind=8), allocatable :: T(:, :,: ), P(:,:,:), rho(:,:,:)
+real(kind=4), allocatable :: T(:, :,: ), P(:,:,:), rho(:,:,:)
 
 !--- 
 real(kind=4), allocatable:: newT(:,:,:), newP(:,:,:),newrho(:,:,:)

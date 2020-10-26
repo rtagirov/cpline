@@ -1,5 +1,8 @@
 *.swp
 src/*.o
+src/*.mod
+src/*.pyc
 src/*.exe
+src/__pycache__
 netcdf/*.o
 netcdf/*.a 
