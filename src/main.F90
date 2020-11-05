@@ -24,7 +24,7 @@
   character(len=80)  filename1, filename2, filename3, filename 
   character(len=80)  folder
   character(len=6)   snapshot
-  character(len=50)  numberx
+  character(len=50)  numberx, numbery
 
 ! --- for zgrid 
   real(kind=8)  dx, dz, dy
@@ -37,8 +37,6 @@
 
 ! --- for setting up tau grid on which to  map :
   integer Ngrid 
-!  integer Ngridmax 
-!  parameter( Ngridmax = 82)
    
   real(kind=8) maxz, tau1lg, step, tau2lg
  
@@ -74,15 +72,8 @@
 !      initialize
 ! ---- read control file and set all logicals ------------------
  
-    call init_calc(mu, tau1lg, step, tau2lg)
-    if (gettaug) then 
-     Ngrid  = int((tau2lg - tau1lg)/step) +1 
-!     if (Ngrid .gt. Ngridmax) then 
-!        print*,' Tau grid configuration results in too many points; Ngrid =', Ngrid 
-!        print*, ' Application will be aborted ' 
-!        stop
-!     endif
-    endif 
+!    call init_calc(mu, tau1lg, step, tau2lg)
+    call init_calc(mu, Ngrid, tau2lg)
 
 !---- for tau - integration we do not need the whole depth of the cube
 !--- set depth of temporary arrays
@@ -109,7 +100,6 @@
 !----- allocate  arrays
 
     call set_arrays(Nx, Ny, Nz, Nzcut, numt, numpres)
-    if (gettaug) call set_tarrays(Nx, Ny, Ngrid)
 
 !---- read in the kappa table 1 :
 
@@ -239,11 +229,11 @@
      summean = summean/(Nx*Ny)
      print*, ' Pivot = ', summean
 
-     open (unit = 9, file ='tau.dat') 
-         do i = 1, nz
-           write(9, *) i, tau(1, 1, i)
-         end do
-     close (unit=9)
+!     open (unit = 9, file ='tau.dat') 
+!         do i = 1, nz
+!           write(9, *) i, tau(1, 1, i)
+!         end do
+!     close (unit=9)
 
      mean1 = 0.0d0
      mean2 = 0.0d0
@@ -366,27 +356,25 @@
 
 
    endif 
+
 !-------------------------------------------------------------------------!
 !   ----- Do we need to map onto a different tau grid?  ------------------!
 
 !--- Note that gettau and tau200 should not be used together!!!! 
 
-   if (gettaug)  then 
+   if (gettaug) then
 
-   print*, ' Start to set up tau-grid onto which to interpolate' 
-     
-!   --- get up taugrid 
-    do i = 1, ngrid
-     taugrid(i) = tau1lg+(i-1)*step
-     taugrid(i) = 10**(taugrid(i)) 
-    end do 
+     call set_tarrays(Nx, Ny, Ngrid)
+!    print*, ' Start to set up tau-grid onto which to interpolate'  
 
 !--- since after rotation our arrays are called differently, and I did not come up 
 !  --- with an easier solution there are two possibilities: 
 
 !   1) ----:
      if (ifmu) then 
+
       print*, ' get temporary arrays, get tau Rosseland and interpolate'  
+
       do i = 1, Nx
         do k = 1, Ny
             do j = 1, Nzcut
@@ -398,11 +386,30 @@
              kappa(j) = introssk(tempt(j), tempp(j))
              kappa(j) = kappa(j)* tempr(j)
 
-            end do
+            enddo
 
 ! inegrate to get tau
-         call integ(zgrid,kappa,taut,Nzcut,(kappa(1)*zgrid(1)))
-!    
+            call integ(zgrid,kappa,taut,Nzcut,(kappa(1)*zgrid(1)))
+ 
+            tau(i, k, 1 : Nzcut) = taut(1 : Nzcut)
+
+        enddo
+      enddo
+
+      tau1lg = log10(maxval(tau(:, :, 2)))
+
+!     Ngrid  = int((tau2lg - tau1lg)/step) + 1
+      step = (tau2lg - tau1lg) / (Ngrid - 1)
+
+!   --- set up taugrid 
+      do j = 1, Ngrid
+         taugrid(j) = tau1lg+(j-1)*step
+         taugrid(j) = 10**(taugrid(j)) 
+      enddo 
+
+      do i = 1, Nx
+        do k = 1, Ny
+
          indum = map1(taut, tempt, Nzcut, taugrid, tempa, Ngrid)
          outT(i,k,1:Ngrid) = tempa(1:Ngrid)
 
@@ -425,6 +432,25 @@
 
 !   2) -----: note if there was no rotation then, tau holds already the rosseland tau, so it does not need to be re-calculated. 
      else
+
+      tau1lg = log10(maxval(tau(:, :, 2)))
+
+!     Ngrid  = int((tau2lg - tau1lg)/step) + 1
+      step = (tau2lg - tau1lg) / (Ngrid - 1)
+
+      call str(Ngrid, numbery)
+
+      open(unit = 1, file = 'tau.'//trim(numbery)//'.out')
+
+!   --- set up taugrid 
+      do j = 1, Ngrid
+         taugrid(j) = tau1lg+(j-1)*step
+         taugrid(j) = 10**(taugrid(j)) 
+         write(1, *) taugrid(j)
+      enddo
+
+      close(unit = 1)
+
        do i = 1, Nx
           do k = 1, Ny
             do j = 1, Nzcut
@@ -433,7 +459,7 @@
              tempp(j) = P(i,k, Nzcut-j+1)
              tempr(j) = rho(i,k, Nzcut-j+1)
              taut(j) =  tau(i,k, j)
-            end do 
+            end do
 
             indum = map1(taut, tempt, Nzcut, taugrid, tempa, Ngrid)
             outT(i,k,1:Ngrid) = tempa(1:Ngrid)
@@ -471,8 +497,9 @@
       Nzz = Ngrid
       !---- need to get mu as a number for the file name:
        call str(int(mu*10), numberx)
+       call str(Ngrid, numbery)
 ! since the cube is rotated, the dz is changed, write out a new Headerfile:
-       filename='Header_mu_'//trim(numberx)//'.'//trim(snapshot)
+       filename='./header/Header_mu_'//trim(numberx)//'.'//trim(snapshot)//'.'//trim(numbery)
        open (unit = 1, file= filename, form='formatted',status ='new')
        write (1,*) ' tau-grid points, start lgtau, step, finish lgtau,  Nx, Ny, dx,  dy' 
        write(1,*) Ngrid, tau1lg, step , tau2lg, Nx, Ny, dx, dy 
@@ -488,29 +515,28 @@
 !       end do
 !       close (unit=1)
 
-
        sizee = 1
        myrank = 0  
 
 !      Temperature 
-       filename='T_onTau.'//trim(snapshot)//'.nc'
+       filename='./nc/T_onTau.'//trim(snapshot)//'.'//trim(numbery)//'.nc'
         call create_netcdf(ncid, filename, 'T',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'T', outT, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
 
 !      Presssure  
-       filename='P_onTau.'//trim(snapshot)//'.nc'
+       filename='./nc/P_onTau.'//trim(snapshot)//'.'//trim(numbery)//'.nc'
         call create_netcdf(ncid, filename, 'P',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'P', outP, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
 !      density 
-       filename='rho_onTau.'//trim(snapshot)//'.nc'
+       filename='./nc/rho_onTau.'//trim(snapshot)//'.'//trim(numbery)//'.nc'
         call create_netcdf(ncid, filename, 'R',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'R', outrho, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
 !---- zgrid 
 
-       filename='Z_onTau.'//trim(snapshot)//'.nc'
+       filename='./nc/Z_onTau.'//trim(snapshot)//'.'//trim(numbery)//'.nc'
         call create_netcdf(ncid, filename, 'Z',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'Z', outz, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)

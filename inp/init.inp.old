@@ -4,4 +4,4 @@
 0.9    ! viewing angle mu
 0      ! calculate tau200 on/off
 1      ! interpolation onto tau rosseland grid on/off (1/0)
-80 2.0 ! number of points in the tau rosseland grid ! final tau rosseland 
+-6.5  0.125 2.0   ! starting tau rosseland  ! tau step ! final tau rosseland 

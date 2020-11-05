@@ -7,10 +7,14 @@ logical  tau200, mpiread, fitsread, binread
 
 contains
 
-subroutine init_calc(mu, tau1lg, step, tau2lg) 
+!subroutine init_calc(mu, tau1lg, step, tau2lg) 
+subroutine init_calc(mu, Ngrid, tau2lg) 
  
    implicit none 
-   real(kind=8), intent(out) :: mu, step, tau1lg, tau2lg 
+!   real(kind=8), intent(out) :: mu, step, tau1lg, tau2lg 
+   real(kind=8), intent(out) :: mu, tau2lg 
+
+   integer, intent(out) :: Ngrid
 
    integer iread,  rot, interpol, tau
   
@@ -30,7 +34,8 @@ subroutine init_calc(mu, tau1lg, step, tau2lg)
     read(2,*) mu
     read(2,*) tau  
     read(2,*) interpol
-    read(2,*) tau1lg, step, tau2lg 
+!    read(2,*) tau1lg, step, tau2lg 
+    read(2,*) Ngrid, tau2lg
    close(unit=2) 
 !------------------------------
   if (iread .eq. 1) binread =.true.
