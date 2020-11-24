@@ -239,11 +239,11 @@
      summean = summean/(Nx*Ny)
      print*, ' Pivot = ', summean
 
-     open (unit = 9, file ='tau.dat') 
-         do i = 1, nz
-           write(9, *) i, tau(1, 1, i)
-         end do
-     close (unit=9)
+!     open (unit = 9, file ='tau.dat') 
+!         do i = 1, nz
+!           write(9, *) i, tau(1, 1, i)
+!         end do
+!     close (unit=9)
 
      mean1 = 0.0d0
      mean2 = 0.0d0
@@ -290,6 +290,24 @@
      write(*, '(A,2x,3(es9.2,2x))') 'max',  maxim1, maxim2, maxim3
      write(*, '(A,2x,3(es9.2,2x))') 'min',  minim1, minim2, minim3
   
+     open(unit = 1, file = 'tau_layers.out')
+
+     do i = 1, Nx
+      do j = 1, Ny
+           write(1, '(10(es9.2,2x))') tau(i, j, 2), &
+                                      tau(i, j, 3), &
+                                      tau(i, j, 4), &
+                                      tau(i, j, 5), &
+                                      tau(i, j, 6), &
+                                      tau(i, j, 7), &
+                                      tau(i, j, 8), &
+                                      tau(i, j, 9), &
+                                      tau(i, j, 10)
+      enddo
+     enddo
+
+     close(unit = 1)
+
 !-------------------------------------------------------------------------!
 !    --------   DO the ROTATION ------------------------------------------!
 
@@ -374,12 +392,17 @@
    if (gettaug)  then 
 
    print*, ' Start to set up tau-grid onto which to interpolate' 
+
+    open(unit = 1, file = 'tau.out')
      
 !   --- get up taugrid 
     do i = 1, ngrid
      taugrid(i) = tau1lg+(i-1)*step
      taugrid(i) = 10**(taugrid(i)) 
+     write(1, *) taugrid(i)
     end do 
+
+    close(unit = 1)
 
 !--- since after rotation our arrays are called differently, and I did not come up 
 !  --- with an easier solution there are two possibilities: 
@@ -472,45 +495,35 @@
       !---- need to get mu as a number for the file name:
        call str(int(mu*10), numberx)
 ! since the cube is rotated, the dz is changed, write out a new Headerfile:
-       filename='Header_mu_'//trim(numberx)//'.'//trim(snapshot)
+       filename='./header/Header_mu_'//trim(numberx)//'.'//trim(snapshot)
        open (unit = 1, file= filename, form='formatted',status ='new')
        write (1,*) ' tau-grid points, start lgtau, step, finish lgtau,  Nx, Ny, dx,  dy' 
        write(1,*) Ngrid, tau1lg, step , tau2lg, Nx, Ny, dx, dy 
        close(unit=1)
-
-!       open (unit =1, file ='structure.dat')       
-!       do k = 1, Nx
-!        do j = 1, Ny
-!         do i = 1, nzz
-!           write(1,*) outz(k,j,i),  outT(k,j, i ), outP(k,j, i), outrho(k,j,i)
-!         end do
-!        end do
-!       end do
-!       close (unit=1)
 
 
        sizee = 1
        myrank = 0  
 
 !      Temperature 
-       filename='T_onTau.'//trim(snapshot)//'.nc'
+       filename='./nc/T_onTau.'//trim(snapshot)//'.nc'
         call create_netcdf(ncid, filename, 'T',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'T', outT, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
 
 !      Presssure  
-       filename='P_onTau.'//trim(snapshot)//'.nc'
+       filename='./nc/P_onTau.'//trim(snapshot)//'.nc'
         call create_netcdf(ncid, filename, 'P',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'P', outP, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
 !      density 
-       filename='rho_onTau.'//trim(snapshot)//'.nc'
+       filename='./nc/rho_onTau.'//trim(snapshot)//'.nc'
         call create_netcdf(ncid, filename, 'R',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'R', outrho, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)
 !---- zgrid 
 
-       filename='Z_onTau.'//trim(snapshot)//'.nc'
+       filename='./nc/Z_onTau.'//trim(snapshot)//'.nc'
         call create_netcdf(ncid, filename, 'Z',  nx, ny, nzz, ier)
         call write_netcdf(ncid, myrank, sizee, 'Z', outz, nx, nx, ny, nzz, comm, ier)
         call close_netcdf(ncid, ier)

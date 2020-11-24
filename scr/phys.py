@@ -1,5 +1,4 @@
 import numpy as np
-import sys
 
 au         = 1.49598500000e+13 # astronomical unit, cm
 r_sun      = 6.95980000000e+10 # solar radius, cm
