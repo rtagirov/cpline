@@ -322,14 +322,14 @@
 !
      print*,  ' Finished rotation' 
 
-     if(tau200) then 
+     if(tau200) then
        print*, ' Read kappa table for tau - 200 calculation after rotation '
 !---- get the other kappa table: 
        open(unit =2, file='kappa_table.dat', form='formatted', status='old')
        read(2,*) numt2, nump2
      
 ! ---- make sure that the numt, numpress in this table are <= than in the tau table because 
-!      of allocation, IN CASE THIS IS NOT TURE: 
+!      of allocation, IN CASE THIS IS NOT TRUE: 
 !      - deallocate kappatab, tabt, tabp, 
 !      - allocate with new dimensions, and read in !
        if ((numt2 .gt. numt) .or. (nump2 .gt. numpres)) then 
@@ -345,13 +345,17 @@
 
        endif  
 
-
+       print*, 'check 1'
  
        read(2,*) (tabt(i), i = 1 , numt)
+       print*, 'check 2'
        read(2,*) (tabp(i), i = 1, numpres)
+       print*, 'check 3'
        do i = 1, numt
           read(2,*) (kappatab(i,j), j = 1, numpres )
        end do
+
+       print*, 'check 4'
 
        close(unit=2)
 
@@ -484,7 +488,9 @@
 
 !-------------------------------------------------------------------------!
 ! ---             Finally , PRINT OUT the results ------------------------!
-!---- the if structure is as follows, since if tau200 is set, then gettaug can not be set. But rotation and tau200 can be set simulaneously. For gettau the end array will always be in the nx, ny, ngrid with and without rotation
+!---- the if structure is as follows, since if tau200 is set, 
+!---- then gettaug can not be set. But rotation and tau200 can be set simulaneously. 
+!---- For gettau the end array will always be in the nx, ny, ngrid with and without rotation
 
 
     print*, ' Finished all calculations let us write stuff out!' 
